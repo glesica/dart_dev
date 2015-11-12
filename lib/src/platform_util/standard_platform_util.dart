@@ -18,19 +18,19 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:yaml/yaml.dart';
+import 'package:yamlicious/yamlicious.dart';
 
 import 'package:dart_dev/src/platform_util/platform_util.dart';
 
 class StandardPlatformUtil implements PlatformUtil {
   bool hasImmediateDependency(String packageName) {
-    File pubspec = new File('pubspec.yaml');
-    Map pubspecYaml = loadYaml(pubspec.readAsStringSync());
+    Map pubspec = _readPubspec();
     List deps = [];
-    if (pubspecYaml.containsKey('dependencies')) {
-      deps.addAll((pubspecYaml['dependencies'] as Map).keys);
+    if (pubspec.containsKey('dependencies')) {
+      deps.addAll((pubspec['dependencies'] as Map).keys);
     }
-    if (pubspecYaml.containsKey('dev_dependencies')) {
-      deps.addAll((pubspecYaml['dev_dependencies'] as Map).keys);
+    if (pubspec.containsKey('dev_dependencies')) {
+      deps.addAll((pubspec['dev_dependencies'] as Map).keys);
     }
     return deps.contains(packageName);
   }
@@ -38,5 +38,33 @@ class StandardPlatformUtil implements PlatformUtil {
   Future<bool> isExecutableInstalled(String executable) async {
     ProcessResult result = await Process.run('which', [executable]);
     return result.exitCode == 0;
+  }
+
+  void linkDependency(String packageName, {Directory linkTarget}) {
+    Map pubspec = _readPubspec();
+    var deps;
+    if (pubspec.containsKey('dependencies')) {
+      deps = pubspec['dependencies'] as Map;
+    }
+    if (pubspec.containsKey('dev_dependencies')) {
+      deps = pubspec['dev_dependencies'] as Map;
+    }
+
+    if (deps.containsKey(packageName)) {
+      // TODO: Cache the previous dependency spec somewhere.
+      deps[packageName] = {'path': linkTarget.absolute.toString()};
+      // TODO: Write the YAML file back out to pubspec.yaml.
+      _writePubspec(pubspec);
+    }
+  }
+
+  Map _readPubspec() {
+    File pubspecFile = new File('pubspec.yaml');
+    return loadYaml(pubspecFile.readAsStringSync());
+  }
+
+  void _writePubspec(Map pubspec) {
+    File pubspecFile = new File('pubspec.yaml');
+    pubspecFile.writeAsStringSync(toYamlString(pubspec), flush: true);
   }
 }

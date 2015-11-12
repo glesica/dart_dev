@@ -15,6 +15,7 @@
 library dart_dev.src.platform_util.api;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_dev/src/platform_util/platform_util.dart';
 
@@ -27,3 +28,9 @@ bool hasImmediateDependency(String packageName) =>
 /// Determines whether or not [executable] is installed on this platform.
 Future<bool> isExecutableInstalled(String executable) =>
     PlatformUtil.retrieve().isExecutableInstalled(executable);
+
+/// Converts the dependency [packageName] in the pubspec.yaml file of the
+/// current project to a `path`-style dependency, linked from the filesystem.
+/// This is helpful for development.
+void linkDependency(String packageName, {Directory linkTarget}) =>
+    PlatformUtil.retrieve().linkDependency(packageName, linkTarget: linkTarget);

@@ -15,6 +15,7 @@
 library dart_dev.src.platform_util.mock_platform_util;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dart_dev/src/platform_util/platform_util.dart';
 import 'package:dart_dev/src/platform_util/standard_platform_util.dart';
@@ -55,4 +56,6 @@ class MockPlatformUtil implements PlatformUtil {
 
   Future<bool> isExecutableInstalled(String executable) async =>
       installedExecutables.contains(executable);
+
+  void linkDependency(String packageName, {Directory linkTarget}) => null;
 }
