@@ -22,8 +22,6 @@ import 'package:yamlicious/yamlicious.dart';
 
 import 'package:dart_dev/src/tasks/task.dart';
 
-class LinkDependencyFailure implements Exception {}
-
 class LinkDependencyResult extends TaskResult {
   LinkDependencyResult()
       : super.success();
@@ -56,7 +54,7 @@ class LinkDependencyTask extends Task {
 
   Future<LinkDependencyResult> _run(String packageName, Directory linkTarget) async {
     Map pubspec = _readPubspec();
-    var deps;
+    Map deps;
     if (pubspec.containsKey('dependencies')) {
       deps = pubspec['dependencies'] as Map;
     }
@@ -64,18 +62,25 @@ class LinkDependencyTask extends Task {
       deps = pubspec['dev_dependencies'] as Map;
     }
 
-    if (deps.containsKey(packageName)) {
-      // TODO: Cache the previous dependency spec somewhere.
-      deps[packageName] = {'path': linkTarget.absolute.toString()};
-      // TODO: Write the YAML file back out to pubspec.yaml.
-      _writePubspec(pubspec);
+    // No link target provided, go one directory up and try the package name.
+    if (linkTarget == null) {
+      linkTarget = new Directory('../${packageName}');
     }
 
-    if (false) {
-      _done.completeError(new LinkDependencyFailure());
-    } else {
-      _done.complete(new LinkDependencyResult());
+    if (!linkTarget.existsSync()) {
+      throw new ArgumentError('Link target "${linkTarget.absolute}" does not exist.');
     }
+
+    if (!deps.containsKey(packageName)) {
+      throw new ArgumentError('Package "$packageName" is not a dependency for this project.');
+    }
+
+    // TODO: Cache the previous dependency spec somewhere.
+    deps[packageName] = {'path': linkTarget.absolute};
+    _writePubspec(pubspec);
+
+    _done.complete(new LinkDependencyResult());
+
     return _done.future;
   }
 

@@ -19,7 +19,6 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:dart_dev/util.dart' show hasImmediateDependency, reporter;
-import 'package:path/path.dart' as path;
 
 import 'package:dart_dev/src/tasks/cli.dart';
 import 'package:dart_dev/src/tasks/link_dependency/api.dart';
@@ -33,7 +32,7 @@ class LinkDependencyCli extends TaskCli {
 
   Future<CliResult> run(ArgResults parsedArgs) async {
     String packageName = parsedArgs.rest[0];
-    Directory linkTarget = new Directory(parsedArgs.rest[1]);
+    Directory linkTarget = parsedArgs.rest.length > 1 ? new Directory(parsedArgs.rest[1]) : null;
 
     LinkDependencyResult result;
     try {
