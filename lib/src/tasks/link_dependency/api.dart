@@ -17,10 +17,10 @@ library dart_dev.src.tasks.link_dependency.api;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:yaml/yaml.dart';
-import 'package:yamlicious/yamlicious.dart';
+import 'package:path/path.dart' as path;
 
 import 'package:dart_dev/src/tasks/task.dart';
+import 'package:dart_dev/util.dart' show hasImmediateDependency;
 
 class LinkDependencyResult extends TaskResult {
   LinkDependencyResult()
@@ -53,44 +53,30 @@ class LinkDependencyTask extends Task {
   String get pubCommand => _pubCommand;
 
   Future<LinkDependencyResult> _run(String packageName, Directory linkTarget) async {
-    Map pubspec = _readPubspec();
-    Map deps;
-    if (pubspec.containsKey('dependencies')) {
-      deps = pubspec['dependencies'] as Map;
-    }
-    if (pubspec.containsKey('dev_dependencies')) {
-      deps = pubspec['dev_dependencies'] as Map;
+    if (!hasImmediateDependency(packageName)) {
+      throw new ArgumentError('Package "$packageName" is not a dependency for this project.');
     }
 
     // No link target provided, go one directory up and try the package name.
     if (linkTarget == null) {
       linkTarget = new Directory('../${packageName}');
     }
-
     if (!linkTarget.existsSync()) {
-      throw new ArgumentError('Link target "${linkTarget.absolute}" does not exist.');
+      throw new ArgumentError('Link target "${linkTarget.absolute.path}" does not exist.');
     }
 
-    if (!deps.containsKey(packageName)) {
-      throw new ArgumentError('Package "$packageName" is not a dependency for this project.');
+    // Delete the old link.
+    Link oldLink = new Link(path.join('packages', packageName));
+    if (!oldLink.existsSync()) {
+      throw new Exception('Package link not found: ${oldLink.path}');
     }
+    oldLink.deleteSync();
 
-    // TODO: Cache the previous dependency spec somewhere.
-    deps[packageName] = {'path': linkTarget.absolute};
-    _writePubspec(pubspec);
+    // Create the new link.
+    Link newLink = new Link(path.join('packages', packageName));
+    newLink.createSync(path.join(linkTarget.absolute.path, 'lib/'));
 
     _done.complete(new LinkDependencyResult());
-
     return _done.future;
-  }
-
-  Map _readPubspec() {
-    File pubspecFile = new File('pubspec.yaml');
-    return loadYaml(pubspecFile.readAsStringSync());
-  }
-
-  void _writePubspec(Map pubspec) {
-    File pubspecFile = new File('pubspec.yaml');
-    pubspecFile.writeAsStringSync(toYamlString(pubspec), flush: true);
   }
 }
