@@ -15,7 +15,6 @@
 library dart_dev.src.platform_util.platform_util;
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dart_dev/src/platform_util/standard_platform_util.dart';
 
@@ -38,6 +37,4 @@ abstract class PlatformUtil {
 
   /// Determines whether or not [executable] is installed on this platform.
   Future<bool> isExecutableInstalled(String executable);
-
-  void linkDependency(String packageName, {Directory linkTarget});
 }

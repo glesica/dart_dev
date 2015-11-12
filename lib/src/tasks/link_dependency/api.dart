@@ -17,8 +17,10 @@ library dart_dev.src.tasks.link_dependency.api;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:yaml/yaml.dart';
+import 'package:yamlicious/yamlicious.dart';
+
 import 'package:dart_dev/src/tasks/task.dart';
-import 'package:dart_dev/util.dart' show linkDependency;
 
 class LinkDependencyFailure implements Exception {}
 
@@ -53,12 +55,37 @@ class LinkDependencyTask extends Task {
   String get pubCommand => _pubCommand;
 
   Future<LinkDependencyResult> _run(String packageName, Directory linkTarget) async {
-    linkDependency(packageName, linkTarget: linkTarget);
+    Map pubspec = _readPubspec();
+    var deps;
+    if (pubspec.containsKey('dependencies')) {
+      deps = pubspec['dependencies'] as Map;
+    }
+    if (pubspec.containsKey('dev_dependencies')) {
+      deps = pubspec['dev_dependencies'] as Map;
+    }
+
+    if (deps.containsKey(packageName)) {
+      // TODO: Cache the previous dependency spec somewhere.
+      deps[packageName] = {'path': linkTarget.absolute.toString()};
+      // TODO: Write the YAML file back out to pubspec.yaml.
+      _writePubspec(pubspec);
+    }
+
     if (false) {
       _done.completeError(new LinkDependencyFailure());
     } else {
       _done.complete(new LinkDependencyResult());
     }
     return _done.future;
+  }
+
+  Map _readPubspec() {
+    File pubspecFile = new File('pubspec.yaml');
+    return loadYaml(pubspecFile.readAsStringSync());
+  }
+
+  void _writePubspec(Map pubspec) {
+    File pubspecFile = new File('pubspec.yaml');
+    pubspecFile.writeAsStringSync(toYamlString(pubspec), flush: true);
   }
 }
